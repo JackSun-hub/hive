@@ -645,7 +645,7 @@ async def lifespan(app: FastAPI):
         await browser.stop()
 
 
-app = FastAPI(title="CreatorHub", lifespan=lifespan)
+app = FastAPI(title="蜂巢", lifespan=lifespan)
 app.add_middleware(LocalAccessMiddleware)
 WEB_DIR = Path(__file__).parent / "web"
 
@@ -6719,7 +6719,7 @@ def _share_history_local_path(
 
 
 def _require_local_action(request: Request, action: str = "reveal") -> None:
-    """仅允许本机 CreatorHub 页面触发文件管理器操作。"""
+    """仅允许本机工作台页面触发文件管理器操作。"""
     def is_loopback(host: str) -> bool:
         host = host.split("%", 1)[0].casefold()
         if host == "localhost":
@@ -6741,7 +6741,7 @@ def _require_local_action(request: Request, action: str = "reveal") -> None:
     local_action = request.headers.get("x-creatorhub-local-action") == action
     if not is_loopback(client_host) or not is_loopback(page_host) or \
             not same_origin or not local_action:
-        raise HTTPException(403, "仅允许从本机 CreatorHub 页面执行文件操作")
+        raise HTTPException(403, "仅允许从本机工作台页面执行文件操作")
 
 
 @app.get("/api/share-download/history/{record_id}/media/{media_index}")
@@ -11735,7 +11735,7 @@ async def test_channel(cid: int):
         if not c:
             raise HTTPException(404)
         ch_type, cfg = c.type, json.loads(c.config or "{}")
-    ok, detail = await send_one(ch_type, cfg, "CreatorHub · 测试通知",
+    ok, detail = await send_one(ch_type, cfg, "蜂巢 · 测试通知",
                                 "这是一条测试消息,收到说明渠道配置正常 ✓")
     return {"ok": ok, "detail": redact_detail(ch_type, cfg, detail)}
 

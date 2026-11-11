@@ -54,16 +54,16 @@ class DesktopTests(unittest.TestCase):
                 self.assertEqual(chosen.getsockname()[0], "127.0.0.1")
 
     def test_frozen_command_is_not_python_module_invocation(self):
-        with patch("sys.frozen", True, create=True), patch("sys.executable", "CreatorHub.exe"):
-            self.assertEqual(child_command("--serve"), ["CreatorHub.exe", "--serve"])
+        with patch("sys.frozen", True, create=True), patch("sys.executable", "Hive.exe"):
+            self.assertEqual(child_command("--serve"), ["Hive.exe", "--serve"])
 
     def test_child_environment_overrides_legacy_windows_encoding(self):
         with patch.dict(os.environ, {"PYTHONUTF8": "0", "PYTHONIOENCODING": "cp1252"}):
-            environment = utf8_child_environment(CREATORHUB_DESKTOP_HOME="C:/CreatorHub")
+            environment = utf8_child_environment(CREATORHUB_DESKTOP_HOME="C:/Hive")
         self.assertEqual(environment["PYTHONUTF8"], "1")
         self.assertEqual(environment["PYTHONIOENCODING"], "utf-8")
         self.assertEqual(environment["PYTHONUNBUFFERED"], "1")
-        self.assertEqual(environment["CREATORHUB_DESKTOP_HOME"], "C:/CreatorHub")
+        self.assertEqual(environment["CREATORHUB_DESKTOP_HOME"], "C:/Hive")
 
     def test_redirected_cp1252_stream_is_reconfigured_for_chinese_startup_message(self):
         raw = io.BytesIO()

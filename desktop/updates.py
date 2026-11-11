@@ -47,7 +47,7 @@ class ReleaseRedirectHandler(urllib.request.HTTPRedirectHandler):
 def open_asset(url, offset=0):
     if not allowed_download_url(url):
         raise ValueError("更新下载地址校验失败。")
-    headers = {"User-Agent": "CreatorHub-Desktop-Updater", "Accept": "application/octet-stream",
+    headers = {"User-Agent": "Hive-Desktop-Updater", "Accept": "application/octet-stream",
                "Accept-Encoding": "identity"}
     if offset:
         headers["Range"] = f"bytes={offset}-"
@@ -116,7 +116,7 @@ def release_info(data, current):
     if data.get("draft") or data.get("prerelease") or latest is None:
         raise ValueError("Not a supported stable release")
     version = tag.removeprefix("v")
-    asset_name = f"CreatorHub-Setup-{version}-windows-x64.exe"
+    asset_name = f"Hive-Setup-{version}-windows-x64.exe"
     download_url = f"{RELEASES_URL}/download/{quote(tag, safe='')}/{asset_name}"
     asset = next((a for a in data.get("assets", []) if isinstance(a, dict)
                   and a.get("name") == asset_name and a.get("state") == "uploaded"
@@ -156,7 +156,7 @@ def release_info(data, current):
 
 def fetch_release(current):
     request = urllib.request.Request(API_URL, headers={"Accept": "application/vnd.github+json",
-        "User-Agent": "CreatorHub-Desktop-Update-Checker", "X-GitHub-Api-Version": "2026-03-10"})
+        "User-Agent": "Hive-Desktop-Update-Checker", "X-GitHub-Api-Version": "2026-03-10"})
     with urllib.request.urlopen(request, timeout=12) as response:
         body = response.read(1024 * 1024 + 1)
     if len(body) > 1024 * 1024:

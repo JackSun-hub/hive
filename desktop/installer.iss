@@ -4,27 +4,27 @@
   #define AppVersion "0.2.0"
 #endif
 #ifndef AppSourceDir
-  #define AppSourceDir "..\dist\windows\CreatorHub"
+  #define AppSourceDir "..\dist\windows\Hive"
 #endif
 [Setup]
 AppId={{93FD4B37-6436-4CE0-8249-BC487CC5A062}
-AppName=CreatorHub
+AppName=蜂巢
 AppVersion={#AppVersion}
-AppVerName=CreatorHub v{#AppVersion}
-AppPublisher=CreatorHub
+AppVerName=蜂巢 v{#AppVersion}
+AppPublisher=蜂巢
 AppPublisherURL=https://github.com/3441293738/creatorhub
-DefaultDirName={localappdata}\Programs\CreatorHub
-DefaultGroupName=CreatorHub
+DefaultDirName={localappdata}\Programs\Hive
+DefaultGroupName=蜂巢
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..\dist\installer
-OutputBaseFilename=CreatorHub-Setup-{#AppVersion}-windows-x64
+OutputBaseFilename=Hive-Setup-{#AppVersion}-windows-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\CreatorHub.exe
+UninstallDisplayIcon={app}\Hive.exe
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes
@@ -40,11 +40,11 @@ DialogFontName=Microsoft YaHei UI
 WelcomeFontName=Microsoft YaHei UI
 
 [CustomMessages]
-LaunchCreatorHub=启动 CreatorHub
+LaunchHive=启动 蜂巢
 InstallingWebView2=正在安装 Microsoft WebView2 运行环境，请保持网络连接…
 WebView2StartFailed=WebView2 安装程序启动失败，请重新运行安装包。
-WebView2Required=需要安装 Microsoft WebView2 运行环境才能继续。请检查网络连接后重试，原有 CreatorHub 数据保持不变。
-UninstallKeepData=卸载将保留账号资料、配置、下载内容和备份。%n%n用户数据目录：%1%n%n卸载前请先退出 CreatorHub。如不再需要这些数据，可在卸载完成后自行备份并清理该目录。
+WebView2Required=需要安装 Microsoft WebView2 运行环境才能继续。请检查网络连接后重试，原有 Hive 数据保持不变。
+UninstallKeepData=卸载将保留账号资料、配置、下载内容和备份。%n%n用户数据目录：%1%n%n卸载前请先退出 Hive。如不再需要这些数据，可在卸载完成后自行备份并清理该目录。
 
 [Files]
 Source: "..\build\windows\MicrosoftEdgeWebview2Setup.exe"; Flags: dontcopy
@@ -54,17 +54,17 @@ Source: "{#AppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdi
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; Flags: checkedonce
 
 [Icons]
-Name: "{group}\CreatorHub"; Filename: "{app}\CreatorHub.exe"
-Name: "{autodesktop}\CreatorHub"; Filename: "{app}\CreatorHub.exe"; Tasks: desktopicon
+Name: "{group}\蜂巢"; Filename: "{app}\Hive.exe"
+Name: "{autodesktop}\蜂巢"; Filename: "{app}\Hive.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\CreatorHub.exe"; Description: "{cm:LaunchCreatorHub}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Hive.exe"; Description: "{cm:LaunchHive}"; Flags: nowait postinstall skipifsilent
 
 ; Delta updates can add application-owned files not in the original install log.
 ; User data lives outside {app}; never delete the parent/user-data directories.
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
-Type: files; Name: "{app}\CreatorHub.exe"
+Type: files; Name: "{app}\Hive.exe"
 
 [Code]
 function HasWebView2(): Boolean;
@@ -108,5 +108,5 @@ function InitializeUninstall(): Boolean;
 begin
   Result := True;
   if not UninstallSilent then
-    MsgBox(FmtMessage(CustomMessage('UninstallKeepData'), [ExpandConstant('{localappdata}\CreatorHub\user-data')]), mbInformation, MB_OK);
+    MsgBox(FmtMessage(CustomMessage('UninstallKeepData'), [ExpandConstant('{localappdata}\Hive\user-data')]), mbInformation, MB_OK);
 end;

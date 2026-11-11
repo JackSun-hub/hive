@@ -133,7 +133,7 @@ class WindowsReleaseTests(unittest.TestCase):
         self.assertLess(script.index('gh release upload'), script.index('gh release edit'))
         self.assertIn('--verify-tag --draft', script)
         self.assertIn('--draft=false', script)
-        self.assertIn('CreatorHub-Setup-$APP_VERSION-windows-x64.exe', script)
+        self.assertIn('Hive-Setup-$APP_VERSION-windows-x64.exe', script)
 
     def test_account_health_download_and_collection_regressions_gate_packaging(self):
         steps = self.jobs['windows']['steps']
@@ -173,18 +173,18 @@ class WindowsReleaseTests(unittest.TestCase):
     def test_independent_updater_is_packaged_and_smoke_tested(self):
         builder = (ROOT / 'desktop/build_windows.py').read_text(encoding='utf-8')
         self.assertIn('"--onefile"', builder)
-        self.assertIn('"CreatorHubUpdater"', builder)
+        self.assertIn('"HiveUpdater"', builder)
         self.assertIn('(helper, "desktop")', builder)
         self.assertIn('"--self-test"', builder)
         steps = self.jobs['windows']['steps']
         smoke = next(step for step in steps if step.get('name') == 'Test frozen updater handoff with disposable fixtures')
-        self.assertIn('CreatorHub/_internal/desktop/CreatorHubUpdater.exe', smoke['run'])
+        self.assertIn('Hive/_internal/desktop/HiveUpdater.exe', smoke['run'])
 
     def test_installer_accepts_an_explicit_build_directory(self):
         installer = (ROOT / 'desktop/installer.iss').read_text(encoding='utf-8')
         self.assertIn('#ifndef AppSourceDir', installer)
         self.assertIn('Source: "{#AppSourceDir}\\*"', installer)
-        self.assertIn('#define AppSourceDir "..\\dist\\windows\\CreatorHub"', installer)
+        self.assertIn('#define AppSourceDir "..\\dist\\windows\\Hive"', installer)
 
     def test_delta_inventory_is_built_after_setup_and_published_with_checksums(self):
         steps = self.jobs['windows']['steps']
@@ -193,8 +193,8 @@ class WindowsReleaseTests(unittest.TestCase):
         self.assertLess(names.index('Fetch verified previous release inventory'), names.index('Build file delta and release inventory'))
         self.assertIn('Test frozen file delta and automatic rollback', names)
         script = self.jobs['release']['steps'][-1]['run']
-        self.assertIn('CreatorHub-Update-$APP_VERSION-windows-x64.json', script)
-        self.assertIn('CreatorHub-Delta-*-to-', script)
+        self.assertIn('Hive-Update-$APP_VERSION-windows-x64.json', script)
+        self.assertIn('Hive-Delta-*-to-', script)
         self.assertIn('"${assets[@]}"', script)
         dependencies = next(step for step in steps if step.get('name') == 'Install build dependencies')
         self.assertIn('-c desktop/constraints-windows.txt', dependencies['run'])
@@ -206,7 +206,7 @@ class WindowsReleaseTests(unittest.TestCase):
         self.assertEqual(len(re.findall(r'^Name:', languages, re.M)), 1)
         self.assertIn('ShowLanguageDialog=no', installer)
         self.assertIn('UsePreviousLanguage=no', installer)
-        self.assertIn('AppVerName=CreatorHub v{#AppVersion}', installer)
+        self.assertIn('AppVerName=蜂巢 v{#AppVersion}', installer)
         self.assertNotIn('compiler:Languages', languages)
         self.assertNotIn('Default.isl', languages)
         self.assertIn('DialogFontName=Microsoft YaHei UI', installer)
@@ -234,9 +234,9 @@ class WindowsReleaseTests(unittest.TestCase):
             value = re.search(rf'^{key}=(.+)$', installer, re.M).group(1)
             self.assertRegex(value, r'[\u4e00-\u9fff]')
         self.assertIn('Description: "{cm:CreateDesktopIcon}"', installer)
-        self.assertIn('Description: "{cm:LaunchCreatorHub}"', installer)
+        self.assertIn('Description: "{cm:LaunchHive}"', installer)
         self.assertNotIn('Description: "Create a desktop shortcut"', installer)
-        self.assertNotIn('Description: "Launch CreatorHub"', installer)
+        self.assertNotIn('Description: "Launch Hive"', installer)
         license_path = ROOT / 'desktop/languages/ChineseSimplified-LICENSE.txt'
         self.assertIn('MIT License', license_path.read_text(encoding='utf-8'))
         self.assertIn('ChineseSimplified-LICENSE.txt', (ROOT / 'desktop/build_windows.py').read_text(encoding='utf-8'))
