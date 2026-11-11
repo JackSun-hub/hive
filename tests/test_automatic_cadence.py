@@ -113,6 +113,7 @@ def test_generated_comment_gaps_are_positive_and_approval_preserves_them(local_p
     account_id = store(DouyinAccount(platform="douyin", status="active", storage_state="{}"))
     rule_id = store(CommentRule(platform="douyin", account_id=account_id,
                                require_review=True, min_gap_seconds=1800,
+                               jitter_seconds=0,   # 关抖动：本用例验证的是间隔下界
                                max_per_run=4, daily_cap=10, templates='["thanks"]'))
     engine = MonitorEngine(cfg, local_project.browser)
     candidates = [{"aweme_id": f"work-{i}", "target_comment_id": f"comment-{i}",
@@ -301,3 +302,48 @@ def test_dm_rule_crud_uses_its_own_serializer(local_project):
             assert main._rule_dict(CommentRule())["mode"] == "auto_reply"
 
     asyncio.run(scenario())
+
+
+def test_bidirectional_jitter_lands_within_configured_range(local_project, monkeypatch):
+    """双向抖动：实际间隔应落在 min_gap ± jitter_seconds 之间。
+
+    用户设「1 分钟一条、上下浮动 30 秒」时，落点应在 30~90 秒，
+    而不是只增不减的 60~90 秒。
+    """
+    from app.models import CommentTask
+    import app.db as db
+    from sqlmodel import select
+
+    cfg = local_project.cfg
+    cfg.engine.quiet_hours_enabled = False
+    cfg.engine.comment_min_gap_seconds = 0      # 避免全局下限压过规则值
+    account_id = store(DouyinAccount(platform="douyin", status="active", storage_state="{}"))
+    rule_id = store(CommentRule(platform="douyin", account_id=account_id,
+                                require_review=True, min_gap_seconds=60,
+                                jitter_seconds=30, max_per_run=6, daily_cap=20,
+                                templates='["thanks"]'))
+    engine = MonitorEngine(cfg, local_project.browser)
+    candidates = [{"aweme_id": f"w{i}", "target_comment_id": f"c{i}",
+                   "ctx": {}, "source_text": "hi"} for i in range(6)]
+    monkeypatch.setattr(local_project.browser, "identity_for", lambda a: None, raising=False)
+    monkeypatch.setattr(engine, "_discover_targets", AsyncMock(return_value=(candidates, "")))
+    # uniform 返回 low/center/high 交替，验证边界都被正确使用
+    values = iter([-1, 0, 1] * 4)
+    monkeypatch.setattr(monitor.random, "uniform",
+                        lambda low, high: (low + high) / 2 + (high - low) / 2 * next(values))
+    monkeypatch.setattr(monitor.random, "randint", lambda low, high: high)
+
+    result = asyncio.run(engine.run_comment_rule(rule_id))
+    assert result["created"] == 6
+
+    with db.get_session() as session:
+        rows = session.exec(select(CommentTask).where(CommentTask.rule_id == rule_id)
+                            .order_by(CommentTask.id)).all()
+        stamps = [r.scheduled_at for r in rows]
+    gaps = [(b - a).total_seconds() for a, b in zip(stamps, stamps[1:])]
+    # 正常间隔必须在 30~90 秒内；超过的是「一簇后插入的长歇」（3~8 倍 gap）
+    normal = [g for g in gaps if g <= 91]
+    lulls = [g for g in gaps if g > 91]
+    assert len(normal) >= 3, f"正常间隔太少: {gaps}"
+    assert all(29 <= g <= 91 for g in normal), f"间隔超出 ±30 秒范围: {normal}"
+    assert all(60 * 3 - 1 <= g <= 60 * 8 + 1 for g in lulls), f"长歇异常: {lulls}"

@@ -4194,6 +4194,10 @@ class MonitorEngine:
             base = datetime.utcnow()
             gap = max(1, rf["min_gap"], self.cfg.engine.comment_min_gap_seconds)
             jitter = bounded_ratio(self.cfg.engine.comment_jitter)
+            jitter_seconds = int(rf.get("jitter_seconds") or 0)
+            if jitter_seconds <= 0:
+                jitter_seconds = max(0, int(getattr(
+                    self.cfg.engine, "comment_jitter_seconds", 0) or 0))
             offset = 0.0
             to_rest = random.randint(3, 6)   # 突发+休息:连发几条后插一段长歇,别匀速排队
             skip = {"dup": 0, "skip_kw": 0, "filter": 0, "empty": 0, "cap": 0}
@@ -4233,13 +4237,9 @@ class MonitorEngine:
                 if not content:
                     skip["empty"] += 1
                     continue
-            # 双向抖动(秒)：实际每条间隔 = gap ± jitter_seconds，下限 1 秒。
-            # 用户设"1 分钟一条、上下浮动 30 秒"，实际落点 30~90 秒随机，
-            # 比"只增不减"的排队更像真人；为 0 时退回旧的比例抖动。
-            jitter_seconds = int(rf.get("jitter_seconds") or 0)
-            if jitter_seconds <= 0:
-                jitter_seconds = max(0, int(getattr(
-                    self.cfg.engine, "comment_jitter_seconds", 0) or 0))
+                # 双向抖动(秒)：实际每条间隔 = gap ± jitter_seconds，下限 1 秒。
+                # 用户设"1 分钟一条、上下浮动 30 秒"，实际落点 30~90 秒随机，
+                # 比"只增不减"的排队更像真人；为 0 时退回旧的比例抖动。
                 if jitter_seconds:
                     step = max(1.0, random.uniform(
                         gap - jitter_seconds, gap + jitter_seconds))
@@ -4356,7 +4356,7 @@ class MonitorEngine:
                     "desc": (ct.desc if ct else "") or "",
                     "platform": rf.get("platform") or "xhs",
                 })
-            return out
+            return out, ""
         """按规则模式发现可评论目标。返回 (candidates, error)。
         candidate: {aweme_id, xsec_token, target_comment_id, target_nick, ctx, source_text}"""
         platform, mode, kind = rf["platform"], rf["mode"], rf["target_kind"]
