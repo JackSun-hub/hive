@@ -88,7 +88,7 @@ def validate_files(files):
             raise ValueError("Invalid or duplicate application file")
         seen.add(name)
         total += entry["size"]
-    if total > MAX_TREE_SIZE or not {"creatorhub.exe", "_internal/desktop-version.txt"} <= seen:
+    if total > MAX_TREE_SIZE or not {"hive.exe", "_internal/desktop-version.txt"} <= seen:
         raise ValueError("Incomplete or oversized application inventory")
     for name in seen:
         if any("/".join(name.split("/")[:i]) in seen for i in range(1, len(name.split("/")))):

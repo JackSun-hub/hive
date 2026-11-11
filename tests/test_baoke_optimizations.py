@@ -200,7 +200,7 @@ class BaokeOptimizationTests(unittest.TestCase):
         payload = build_keyword_collection_report(job, [], [])
         workbook = load_workbook(BytesIO(payload), read_only=True)
         summary, contents, comments, leads = workbook.worksheets
-        self.assertEqual(workbook.properties.title, "CreatorHub 内容采集报告")
+        self.assertEqual(workbook.properties.title, "Hive 内容采集报告")
         summary_values = [cell.value for row in summary.iter_rows() for cell in row]
         self.assertIn("采集来源", summary_values)
         self.assertIn("选题库", summary_values)
