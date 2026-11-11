@@ -106,19 +106,13 @@ chmod +x start.sh
 
 <table>
   <tr>
-    <th align="center" width="33%">赞赏支持</th>
-    <th align="center" width="33%">扫码加群</th>
-    <th align="center" width="33%">添加作者微信</th>
+    <th align="center" width="50%">扫码加群</th>
+    <th align="center" width="50%">添加作者微信</th>
   </tr>
   <tr>
     <td align="center" valign="middle">
-      <a href="assets/community/wechat-reward.jpg">
-        <img src="assets/community/wechat-reward.jpg" alt="CreatorHub 作者微信赞赏码" width="240">
-      </a>
-    </td>
-    <td align="center" valign="middle">
       <a href="assets/community/wechat-group.png">
-        <img src="assets/community/wechat-group.png" alt="CreatorHub 交流群二维码" width="240">
+        <img src="assets/community/wechat-group.png" alt="交流群二维码" width="240">
       </a>
     </td>
     <td align="center" valign="middle">
