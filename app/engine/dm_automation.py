@@ -75,6 +75,38 @@ def render_reply(rule: DmAutoReplyRule, *, nickname: str, message: str) -> str:
     return " ".join(str(rendered).strip().split())[:500]
 
 
+async def render_reply_ai(rule: DmAutoReplyRule, *, nickname: str,
+                         message: str) -> str:
+    """规则开了 use_ai 时优先用大模型写回复，失败/未配置回退模板库。
+
+    与自动评论共用同一套 AI 设置，规则自己的 ai_focus 作为硬约束注入，
+    所以每条私信规则的经营重点可以各设各的。
+    """
+    if getattr(rule, "use_ai", False):
+        try:
+            from ..settings import get_setting
+            from . import compose
+            if get_setting("ai_enabled", "0") == "1":
+                ai = {
+                    "base_url": get_setting("ai_base_url", ""),
+                    "api_key": get_setting("ai_api_key", ""),
+                    "model": get_setting("ai_model", ""),
+                    "prompt": get_setting("ai_prompt", ""),
+                    "temperature": get_setting("ai_temperature", "0.9"),
+                }
+                if ai["base_url"] and ai["api_key"] and ai["model"]:
+                    text = await compose.generate({
+                        "source_text": message, "nick": nickname,
+                        "platform": rule.platform or "xhs", "mode": "auto_reply",
+                        "focus": getattr(rule, "ai_focus", "") or "",
+                    }, ai)
+                    if text:
+                        return text[:500]
+        except Exception:
+            pass   # 任何异常都退回模板库，不让 AI 故障卡住私信队列
+    return render_reply(rule, nickname=nickname, message=message)
+
+
 def _max_store(raw_json: str) -> int:
     try:
         return max(0, int(_json_dict(raw_json).get("max_store_id") or 0))
@@ -473,7 +505,7 @@ class XhsDmAutomation:
                             message_count += 1
                     session.commit()
                 for msg_id in incoming_ids:
-                    outcome = self._evaluate_message(
+                    outcome = await self._evaluate_message(
                         account_id, str(item["conv_id"]), msg_id)
                     queued += int(outcome == "queued")
                     drafts += int(outcome == "draft")
@@ -510,7 +542,7 @@ class XhsDmAutomation:
                 "baseline_initialized": True,
                 "realtime": self.realtime_status(account_id)}
 
-    def _evaluate_message(self, account_id: int, conv_id: str, msg_id: str) -> str:
+    async def _evaluate_message(self, account_id: int, conv_id: str, msg_id: str) -> str:
         if not bool(self.cfg.engine.xhs_dm_auto_reply_enabled):
             return "disabled"
         now = datetime.utcnow()
@@ -591,7 +623,7 @@ class XhsDmAutomation:
                 session.add(msg); session.commit()
                 return "cooldown"
 
-            content = render_reply(
+            content = await render_reply_ai(
                 matched, nickname=conv.peer_nickname, message=msg.text)
             if not content:
                 msg.auto_reply_state = "empty_template"

@@ -254,6 +254,9 @@ def parse_comment(raw: dict) -> Optional[dict]:
         "comment_id": cid,
         "text": (_first(raw, "content", "text", default="") or "").strip(),
         "user_nickname": _first(user, "nickname", "nick_name", "name", default="") or "",
+        # 评论者的 user_id 在 user_info.user_id 里；小红书的 /user/profile/{id} 用的就是它。
+        # 没有它就无法从采集结果定位私信对象，所以必须显式取出来。
+        "user_sec_uid": str(_first(user, "user_id", "userid", "sec_uid", default="") or ""),
         "like_count": _num(_first(raw, "like_count", "liked_count", default=0)),
         "create_time": int(_first(raw, "create_time", "createTime", default=0) or 0) // 1000
         if int(_first(raw, "create_time", "createTime", default=0) or 0) > 10_000_000_000

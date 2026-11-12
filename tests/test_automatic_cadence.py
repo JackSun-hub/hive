@@ -110,6 +110,7 @@ def test_generated_comment_gaps_are_positive_and_approval_preserves_them(local_p
     cfg = local_project.cfg
     cfg.engine.quiet_hours_enabled = False
     cfg.engine.comment_jitter = 0.4
+    cfg.engine.comment_jitter_seconds = 0   # 全局双向抖动也关掉，本用例只验证间隔下界
     account_id = store(DouyinAccount(platform="douyin", status="active", storage_state="{}"))
     rule_id = store(CommentRule(platform="douyin", account_id=account_id,
                                require_review=True, min_gap_seconds=1800,

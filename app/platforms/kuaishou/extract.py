@@ -173,6 +173,10 @@ def parse_ks_comment(raw: dict) -> Optional[dict]:
         "text": (_first(raw, "content", "text", default="") or "").strip(),
         "user_nickname": _first(raw, "author_name", "authorName", "userName", "name",
                                 default="") or "",
+        # 评论者 id：快手 REST v2 用 author_id，旧 GraphQL 用 authorId/userId。
+        # 没有它就无法从采集结果定位私信对象，多候选兜底取值，取不到留空不报错。
+        "user_sec_uid": str(_first(raw, "author_id", "authorId", "user_id", "userId",
+                                   "eid", "encryptedUserId", default="") or ""),
         "like_count": _to_int(_first(raw, "likedCount", "realLikedCount", "like_count",
                                      "likeCount", default=0)),
         "create_time": create_time,

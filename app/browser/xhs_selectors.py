@@ -101,6 +101,13 @@ SELECTOR_GROUPS: Mapping[str, tuple[SelectorCandidate, ...]] = MappingProxyType(
         _text("upload_processing_text", "处理中"),
     ),
     "comment.editor": (
+        # 实测（2026-11 线上）：评论/回复输入框是 <P id="content-textarea"
+        # class="content-input" contenteditable="true">，既不是 textarea 也没有
+        # placeholder，基于 placeholder 的老选择器全部落空，回复会卡在"未找到输入框"。
+        _css("comment_editor_content_textarea",
+             '#content-textarea[contenteditable="true"]'),
+        _css("comment_editor_content_input",
+             '.content-input[contenteditable="true"]'),
         _css(
             "comment_editor_contenteditable",
             '[contenteditable="true"][placeholder*="评论"]',

@@ -191,7 +191,6 @@ async def _wait_until_enabled(locator: Any, interaction: Any,
                 return True
         except Exception:
             pass
-        await interaction.pause(0.2, 0.45)
     return False
 
 
@@ -687,6 +686,16 @@ async def comment_xhs_browser(
             if "login" in page.url or "passport" in page.url:
                 return XhsWriteOutcome("failed", error="logged_out:账号未登录")
 
+            # 小红书是 SPA：domcontentloaded 之后评论区还要异步拉数据。
+            # 不等这一下，第一轮定位必然落空并退化成文本匹配。
+            try:
+                await page.wait_for_selector(
+                    '[class*="comment-item"], .comments-container',
+                    timeout=8000, state="attached")
+            except Exception:
+                pass
+            await interaction.pause(1.2, 2.0)
+
             if target_comment_id:
                 target = await _find_reply_target(
                     page, target_comment_id, target_text)
@@ -701,20 +710,33 @@ async def comment_xhs_browser(
                         "failed", error="未找到目标评论，已停止且不会降级为顶层评论")
 
                 reply = None
-                try:
-                    reply = target.get_by_text("回复", exact=True).first
-                    if not await _locator_visible(reply):
-                        reply = None
-                except Exception:
-                    reply = None
-                if reply is None:
+                # 实测（2026-11 线上）：小红书评论的操作区是一排纯图标，
+                # 「回复」根本没有文字，标记是 <div class="reply icon-container">
+                # 内含 svg#reply；后面的数字是回复条数，不是按钮文案。
+                # 必须逐个选择器单独试 —— 组合选择器配 .first 会锁定 DOM 里
+                # 第一个匹配（可能是隐藏节点），导致永远取不到真正可见的那个。
+                for selector in ('[class*="reply"]',
+                                 'svg[id="reply"], use[*|href$="#reply"]',
+                                 '[class*="Reply"]',
+                                 'button:has-text("回复")',
+                                 '[data-testid*="reply"]'):
                     try:
-                        reply = target.locator(
-                            'button:has-text("回复"),[class*="reply"]').first
-                        if not await _locator_visible(reply):
-                            reply = None
+                        loc = target.locator(selector).first
+                        if await _locator_visible(loc):
+                            reply = loc
+                            break
                     except Exception:
-                        reply = None
+                        continue
+                if reply is None:
+                    # 纯文字兜底（旧版页面/其他端）
+                    for text in ("回复", "回 复"):
+                        try:
+                            loc = target.get_by_text(text, exact=True).first
+                            if await _locator_visible(loc):
+                                reply = loc
+                                break
+                        except Exception:
+                            continue
                 if reply is None:
                     return XhsWriteOutcome(
                         "failed", error="已找到目标评论，但未找到该评论的回复入口")

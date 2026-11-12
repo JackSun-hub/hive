@@ -1,6 +1,10 @@
 """抖音 / 小红书 / 快手 / 视频号批量采集流水线。"""
 from __future__ import annotations
 
+import logging
+
+log = logging.getLogger(__name__)
+
 import asyncio
 import json
 import math
@@ -954,18 +958,33 @@ class KeywordCollector:
     def _persist_comments(job_id: int, content_id: int, platform: str,
                           aweme_id: str, comments: list[dict]) -> int:
         with get_session() as session:
-            known = set(session.exec(
-                select(KeywordCollectionComment.comment_id)
-                .where(KeywordCollectionComment.job_id == job_id)
-                .where(KeywordCollectionComment.content_id == content_id)
-            ).all())
+            # 用 {comment_id: row} 而不是 set：老记录可能是在"评论者 user_id 尚未采集"
+            # 的版本下入库的，重采时必须把缺失的 user_sec_uid 回填，否则发私信永远不可用。
+            known = {
+                row.comment_id: row
+                for row in session.exec(
+                    select(KeywordCollectionComment)
+                    .where(KeywordCollectionComment.job_id == job_id)
+                    .where(KeywordCollectionComment.content_id == content_id)
+                ).all()
+            }
             added = 0
+            backfilled = 0
             for item in comments:
                 cid = str(item.get("comment_id") or "")
-                if not cid or cid in known:
+                if not cid:
                     continue
-                known.add(cid)
-                session.add(KeywordCollectionComment(
+                existing = known.get(cid)
+                if existing is not None:
+                    # 老记录可能是"评论者 user_id 未采集"的版本入库的，
+                    # 重采时把 user_sec_uid 补上，否则发私信永远拿不到收件人。
+                    uid = str(item.get("user_sec_uid") or "")
+                    if uid and not (existing.user_sec_uid or ""):
+                        existing.user_sec_uid = uid
+                        session.add(existing)
+                        backfilled += 1
+                    continue
+                row = KeywordCollectionComment(
                     job_id=job_id, content_id=content_id, platform=platform,
                     aweme_id=aweme_id, comment_id=cid,
                     text=item.get("text") or "",
@@ -975,7 +994,11 @@ class KeywordCollector:
                     like_count=int(item.get("like_count") or 0),
                     create_time=int(item.get("create_time") or 0),
                     reply_to=item.get("reply_to") or "",
-                ))
+                )
+                session.add(row)
+                # 必须写回 known：下面 collected_comment_count 用 len(known) 统计，
+                # 漏掉新增就会让「已采评论」永远显示 0。
+                known[cid] = row
                 added += 1
             content = session.get(KeywordCollectionContent, content_id)
             if content:

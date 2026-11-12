@@ -93,6 +93,9 @@ class EngineConfig:
     # ── 自动评论风控闸(写操作最敏感,宁慢勿快)──
     comment_daily_cap_per_account: int = 30  # 每账号每日自动评论总上限(跨所有规则),0=不限
     comment_min_gap_seconds: int = 60        # 同账号两条评论的全局最小间隔(秒)
+    # 双向抖动(秒):实际间隔 = min_gap ± 本值，两端截断到 >=1 秒。
+    # 例:min_gap=60、本值=30 → 每条评论间隔随机落在 30~90 秒。
+    comment_jitter_seconds: int = 30
     comment_jitter: float = 0.4              # 评论排队间隔额外增加 0–40%，不缩短最小间隔
     comment_hourly_cap_per_account: int = 10  # 每账号每小时自动评论上限(比日上限更贴人类节律),0=不限
     comment_risk_cooldown_seconds: int = 21600  # 平台拒绝/验证后暂停该账号写操作(默认6小时)
