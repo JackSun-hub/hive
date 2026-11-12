@@ -101,6 +101,8 @@ def parse_note_brief(item: dict) -> Optional[dict]:
         "author_id": str(_first(user, "user_id", "userId", "userid", "id", default="") or ""),
         "author_name": _text(_first(user, "nickname", "nick_name", "nickName", "name")),
         "avatar": _text(_first(user, "avatar", "images")),
+        # 发帖 IP 属地：笔记本体或 extra 里带，用于按地区筛选采集结果。
+        "ip_label": _xhs_ip_label(card, user),
     }
 
 
@@ -221,6 +223,7 @@ def parse_note_detail(note_card: dict, brief: dict | None = None, *,
     aw.avatar = _text(_first(user, "avatar", "images")) or (brief or {}).get("avatar", "")
     aw.like_count = _num(_first(interact, "liked_count", "likedCount", default=0))
     aw.comment_count = _num(_first(interact, "comment_count", "commentCount", default=0))
+    aw.ip_label = _xhs_ip_label(note_card, card, user)
 
     imgs = _first(note_card, "image_list", "imageList", default=[])
     imgs = [img for img in imgs if isinstance(img, dict)] if isinstance(imgs, list) else []
@@ -244,6 +247,30 @@ def parse_note_detail(note_card: dict, brief: dict | None = None, *,
 
 
 # ── 评论 ──
+def _xhs_ip_label(*sources) -> str:
+    """从多个候选字典里取 IP 属地标签。
+
+    小红书不同接口给的字段名不一致：接口直连常用 ip_location，
+    页面预置状态用 ipLocation，创作者后台用 region。值可能是字符串，
+    也可能是 {"name": "上海"} 这样的对象，两种都处理。
+    """
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        for holder in (source, source.get("extra") or {}, source.get("share_info") or {}):
+            if not isinstance(holder, dict):
+                continue
+            value = _first(holder, "ip_location", "ipLocation", "ip_label",
+                           "ipLabel", "region", default="")
+            if isinstance(value, dict):
+                value = _first(value, "name", "label", "text", "value", default="")
+            if value not in (None, ""):
+                text = str(value).strip()
+                if text:
+                    return text
+    return ""
+
+
 def parse_comment(raw: dict) -> Optional[dict]:
     cid = str(_first(raw, "id", "comment_id", default="") or "")
     if not cid:
@@ -257,6 +284,9 @@ def parse_comment(raw: dict) -> Optional[dict]:
         # 评论者的 user_id 在 user_info.user_id 里；小红书的 /user/profile/{id} 用的就是它。
         # 没有它就无法从采集结果定位私信对象，所以必须显式取出来。
         "user_sec_uid": str(_first(user, "user_id", "userid", "sec_uid", default="") or ""),
+        # 评论者 IP 属地（平台展示的「上海」「广东」）。返回结构里字段名不稳定，
+        # 可能挂在评论本体、extra 或 user_info 上，逐个兜底。
+        "ip_label": _xhs_ip_label(raw, user),
         "like_count": _num(_first(raw, "like_count", "liked_count", default=0)),
         "create_time": int(_first(raw, "create_time", "createTime", default=0) or 0) // 1000
         if int(_first(raw, "create_time", "createTime", default=0) or 0) > 10_000_000_000

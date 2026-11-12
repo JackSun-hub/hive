@@ -412,6 +412,7 @@ class KeywordCollectionContent(SQLModel, table=True):
     cover_url: str = ""
     like_count: int = 0
     comment_count: int = 0                  # 平台显示的评论总数
+    ip_label: str = ""                      # 发帖 IP 属地（平台展示的地区标签）
     collected_comment_count: int = 0        # 本任务实际入库数
     media_json: str = "[]"
     xsec_token: str = ""

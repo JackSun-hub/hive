@@ -7340,6 +7340,7 @@ def _collection_content_dict(row: KeywordCollectionContent) -> dict:
         "media_type": row.media_type, "create_time": row.create_time,
         "cover_url": row.cover_url, "like_count": row.like_count,
         "comment_count": row.comment_count,
+        "ip_label": getattr(row, "ip_label", "") or "",
         "collected_comment_count": row.collected_comment_count,
         "download_status": row.download_status, "local_path": row.local_path,
         "xsec_token": row.xsec_token, "xsec_source": row.xsec_source,

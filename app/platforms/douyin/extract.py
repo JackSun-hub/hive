@@ -33,6 +33,7 @@ class Aweme:
     platform: str = "douyin"    # douyin | xhs(决定下载时的 Referer)
     source_url: str = ""        # 平台作品规范链接（可用时持久化，避免后续猜链接）
     author_unique_id: str = ""  # TikTok 等平台构造规范作品链接所需的公开账号名
+    ip_label: str = ""          # 发帖 IP 属地（平台展示的地区标签）
 
 
 def _first_http(urls) -> Optional[str]:
@@ -103,6 +104,9 @@ def parse_aweme(item: dict, quality: str = "highest") -> Optional[Aweme]:
     stats = item.get("statistics") or {}
     aw.like_count = int(stats.get("digg_count") or 0)
     aw.comment_count = int(stats.get("comment_count") or 0)
+    # 发帖 IP 属地：抖音字段名叫 ip_label / ipLocation 都可能，多候选兜底
+    aw.ip_label = str(_first_value(item, "ip_label", "ipLabel", "ip_location",
+                                   "ipLocation", "region", default="") or "").strip()
     dur_ms = (item.get("video") or {}).get("duration") or 0
     aw.duration = int(dur_ms / 1000) if dur_ms else 0
 

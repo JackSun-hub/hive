@@ -699,6 +699,7 @@ class KeywordCollector:
             row.cover_url = aweme.cover or ""
             row.like_count = aweme.like_count
             row.comment_count = aweme.comment_count
+            row.ip_label = str(getattr(aweme, "ip_label", "") or "")
             row.media_json = _media_json(aweme)
             row.xsec_token = xsec_token
             row.xsec_source = xsec_source

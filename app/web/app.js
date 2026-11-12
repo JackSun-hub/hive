@@ -5847,7 +5847,7 @@ function collectionResultCard(item) {
   const fileExists = Boolean(item.local_exists);
   const downloadClass = fileExists ? "done" : item.download_status === "failed" ? "failed" : "skipped";
   const downloadLabel = fileExists ? "已下载" : item.download_status === "failed" ? "下载失败" : item.download_status === "done" ? "文件缺失" : "未下载";
-  const byline = [item.author_name || "未知作者", item.create_time ? fmtTime(item.create_time) : "", item.aweme_id || ""].filter(Boolean);
+  const byline = [item.author_name || "未知作者", item.ip_label ? `📍${item.ip_label}` : "", item.create_time ? fmtTime(item.create_time) : "", item.aweme_id || ""].filter(Boolean);
   const cover = item.cover_url
     ? `<img src="${esc(item.cover_url)}" alt="${esc(title.slice(0, 60))}封面" loading="lazy" referrerpolicy="no-referrer">`
     : `<span class="collection-cover-empty">${ic(isGallery ? "i-image" : "i-film")}</span>`;
