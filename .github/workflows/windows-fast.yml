@@ -60,17 +60,18 @@ jobs:
 
       - name: Download WebView2 bootstrapper
         shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist/installer | Out-Null
-          $url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-          Invoke-WebRequest -Uri $url -OutFile dist/installer/MicrosoftEdgeWebview2Setup.exe
+        run: ./desktop/prepare_webview2.ps1
 
       - name: Compile installer
         shell: pwsh
         run: |
-          $iss = "desktop/installer.iss"
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:APP_VERSION $iss
+          New-Item -ItemType Directory -Force -Path dist/installer | Out-Null
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw "找不到 Inno Setup 6 编译器" }
+          & $compiler "/DAppVersion=$env:APP_VERSION" desktop/installer.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup 编译失败" }
+          $file = Get-Item "dist/installer/Hive-Setup-$env:APP_VERSION-windows-x64.exe"
+          "$((Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower())  $($file.Name)" | Set-Content dist/installer/SHA256.txt -Encoding ascii
           Get-ChildItem dist/installer | Format-Table Name, Length
 
       - name: Upload artifact
