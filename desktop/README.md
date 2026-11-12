@@ -12,9 +12,9 @@
 4. 使用“新手向导”选择平台，按登录 → 第一个任务完成操作。
 5. 可最小化到托盘；关闭网页不停止任务。“停止并退出”或关闭管理窗口会确认并停止服务。
 
-从 [最新正式版](https://github.com/3441293738/creatorhub/releases/latest) 的 Assets 下载安装包。仓库 ZIP 是源码，不是安装包。
+从 [最新正式版](https://github.com/JackSun-hub/hive/releases/latest) 的 Assets 下载安装包。仓库 ZIP 是源码，不是安装包。
 
-数据位于 `%LOCALAPPDATA%\蜂巢\user-data`，与安装目录分开：
+数据位于 `%LOCALAPPDATA%\Hive\user-data`，与安装目录分开：
 
 - `config.yaml`、`data/`：配置、账号 Profile、数据库与媒体。
 - `browsers/`：浏览器组件，不打进安装包，首次启动自动下载。
@@ -123,7 +123,7 @@ python desktop/release.py 0.2.0
 ```powershell
 # 仅在上次增量更新中断、所有 蜂巢 进程退出后使用。
 # 从 user-data/runtime/updates 对应 update-* 目录找到该次独立更新器。
-& '对应更新目录/蜂巢Updater.exe' --recover-home "$env:LOCALAPPDATA/蜂巢/user-data"
+& '对应更新目录/HiveUpdater.exe' --recover-home "$env:LOCALAPPDATA/Hive/user-data"
 ```
 
 维护者可用两版构建验证变化文件大小；初次 v0.2.0 不传基线：
@@ -161,14 +161,14 @@ python desktop/build_update.py --app-dir dist/windows/蜂巢 --version 0.2.1 --b
 
 更新日志位于 `logs/update-handoff.log`、`logs/update-*-helper.log`、`logs/update-*-setup.log`；配置与数据库备份位于 `backups/`，已下载文件位于 `runtime/updates/`。不要在安装期间清理这些目录。中断后再次打开时会提示上次更新结果；日志可能包含本机路径，请勿直接公开。
 
-实现依据：[GitHub Releases API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)、[资产 digest](https://docs.github.com/en/rest/releases/assets)、[Inno Setup 安装参数](https://jrsoftware.org/ishelp/topic_setupcmdline.htm)、[安装退出码](https://jrsoftware.org/ishelp/topic_setupexitcodes.htm)、[PyInstaller 冻结路径](https://pyinstaller.org/en/stable/runtime-information.html)。构建器同时打包独立 `蜂巢Updater.exe`，CI 验证它随主程序分发。
+实现依据：[GitHub Releases API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)、[资产 digest](https://docs.github.com/en/rest/releases/assets)、[Inno Setup 安装参数](https://jrsoftware.org/ishelp/topic_setupcmdline.htm)、[安装退出码](https://jrsoftware.org/ishelp/topic_setupexitcodes.htm)、[PyInstaller 冻结路径](https://pyinstaller.org/en/stable/runtime-information.html)。构建器同时打包独立 `HiveUpdater.exe`，CI 验证它随主程序分发。
 
 ```powershell
 python -m unittest discover -s tests -p "test_desktop_update*.py"
 npm run build:desktop
 python tests/desktop_update_browser.py
-python desktop/smoke_update_windows.py dist/windows/蜂巢/_internal/desktop/蜂巢Updater.exe
-python desktop/smoke_update_windows.py dist/windows/蜂巢/_internal/desktop/蜂巢Updater.exe --delta
+python desktop/smoke_update_windows.py dist/windows/蜂巢/_internal/desktop/HiveUpdater.exe
+python desktop/smoke_update_windows.py dist/windows/蜂巢/_internal/desktop/HiveUpdater.exe --delta
 ```
 
 页面验收使用本地响应和非可执行字节样本，覆盖下载/取消/重试、安装确认、深浅主题与窄窗口。原生交接验收使用临时 C# 假应用/假安装器，验证进程退出、文件锁、带中文/空格路径的替换和重新启动，不安装真实软件或访问账号。正式发布前仍需在测试机上验证 Inno Setup 旧版→新版覆盖安装、空间不足、断电/安装中断后的修复和数据保留。
