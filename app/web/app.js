@@ -5962,7 +5962,22 @@ function collectionCommentParams({ exportMode = false } = {}) {
 function collectionCommentMarkup(comment) {
   const source = [comment.source_keyword ? `#${comment.source_keyword}` : "", comment.source_desc || ""]
     .filter(Boolean).join(" · ");
-  return `<article class="collection-comment"><div class="collection-comment-head"><div><b>${esc(comment.user_nickname || "匿名用户")}</b>${comment.ip_label ? ` · ${esc(comment.ip_label)}` : ""}${comment.user_sec_uid ? `<div class="comment-user-sec" title="${esc(comment.user_sec_uid)}">sec_uid: ${esc(comment.user_sec_uid)}</div>` : ""}${source ? `<div class="collection-comment-source">${esc(source)}</div>` : ""}</div><span>${fmtTime(comment.create_time)} · ${fmtNum(comment.like_count)} 赞${comment.reply_to ? " · 回复" : ""}</span></div><p>${esc(comment.text || "（空评论）")}</p></article>`;
+  return `<article class="collection-comment" id="cc-${comment.id}" data-secuid="${esc(comment.user_sec_uid || "")}" data-nick="${esc(comment.user_nickname || "")}"><div class="collection-comment-head"><div><b>${esc(comment.user_nickname || "匿名用户")}</b>${comment.ip_label ? ` · ${esc(comment.ip_label)}` : ""}${comment.user_sec_uid ? `<div class="comment-user-sec" title="${esc(comment.user_sec_uid)}">sec_uid: ${esc(comment.user_sec_uid)}</div>` : ""}${source ? `<div class="collection-comment-source">${esc(source)}</div>` : ""}</div><span>${fmtTime(comment.create_time)} · ${fmtNum(comment.like_count)} 赞${comment.reply_to ? " · 回复" : ""}</span></div><p>${esc(comment.text || "（空评论）")}</p>
+    <div class="cc-acts"><button type="button" class="btn btn-sm" onclick="ccReplyToggle(${comment.id})">回复</button></div>
+    <div class="cc-box" id="cc-box-${comment.id}" hidden>
+      <textarea id="cc-text-${comment.id}" rows="2" placeholder="回复内容；留空可先点「AI 生成」"></textarea>
+      <input id="cc-focus-${comment.id}" maxlength="300" placeholder="AI 回复重点（可选，如：引导对方私信咨询 / 只夸摄影技术）">
+      <div class="cc-row">
+        <select id="cc-acc-${comment.id}"></select>
+        <button type="button" class="btn btn-sm" onclick="ccReplyAi(${comment.id})">AI 生成</button>
+        <button type="button" class="btn btn-sm" onclick="ccReplySend(${comment.id}, false)">加入队列</button>
+        <button type="button" class="btn btn-sm btn-primary" onclick="ccReplySend(${comment.id}, true)">立即发送</button>
+        ${comment.user_sec_uid
+          ? `<button type="button" class="btn btn-sm" onclick="ccDmSend(${comment.id})" title="对评论者发起主动私信（小红书对陌生人有严格限制）">发私信</button>`
+          : `<button type="button" class="btn btn-sm" disabled title="这条评论没有采到 user_id，无法定位私信对象；重新采集一次即可">发私信</button>`}
+      </div>
+      <div class="cc-hint" id="cc-hint-${comment.id}"></div>
+    </div></article>`;
 }
 async function loadCollectionComments(page = COLLECTION_COMMENT_PAGE) {
   const modal = $("collection-comments-modal");
