@@ -1,14 +1,14 @@
-# CreatorHub
+# 蜂巢
 
 本地运行的多平台内容管理工作台，支持 **抖音 / 小红书 / 快手 / 视频号 / TikTok**。
 
-[在线预览](https://3441293738.github.io/creatorhub/) · [平台能力](#平台能力) · [使用指南](https://3441293738.github.io/creatorhub/guide/) · [下载安装](https://github.com/3441293738/creatorhub/releases/latest) · [问题反馈](https://github.com/3441293738/creatorhub/issues) · [赞赏与交流](#赞赏与交流)
+[在线预览](https://3441293738.github.io/creatorhub/) · [平台能力](#平台能力) · [使用指南](https://3441293738.github.io/creatorhub/guide/) · [下载安装](https://github.com/JackSun-hub/hive/releases/latest) · [问题反馈](https://github.com/3441293738/creatorhub/issues) · [赞赏与交流](#赞赏与交流)
 
 <p align="center">
   <a href="https://3441293738.github.io/creatorhub/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/hero-banner-dark.svg">
-      <img alt="CreatorHub 本地多平台内容管理工作台动态架构预览" src="assets/hero-banner.svg" width="100%">
+      <img alt="蜂巢 本地多平台内容管理工作台动态架构预览" src="assets/hero-banner.svg" width="100%">
     </picture>
   </a>
 </p>
@@ -33,7 +33,7 @@
 
 ### Windows 安装版（推荐）
 
-1. 在 [Releases](https://github.com/3441293738/creatorhub/releases/latest) 的 Assets 中下载 `CreatorHub-Setup-版本-windows-x64.exe`。
+1. 在 [Releases](https://github.com/JackSun-hub/hive/releases/latest) 的 Assets 中下载 `Hive-Setup-版本-windows-x64.exe`。
 2. 双击安装，通过桌面快捷方式启动。
 3. 点击「启动本地服务」，等待浏览器组件准备完成，打开工作台并登录账号。
 
@@ -79,7 +79,7 @@ chmod +x start.sh
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/3441293738/creatorhub/star-history/assets/star-history-dark.svg">
-  <img alt="CreatorHub Star History Chart" src="https://raw.githubusercontent.com/3441293738/creatorhub/star-history/assets/star-history.svg">
+  <img alt="蜂巢 Star History Chart" src="https://raw.githubusercontent.com/JackSun-hub/hive/star-history/assets/star-history.svg">
 </picture>
 
 ## 赞助商
@@ -100,9 +100,9 @@ chmod +x start.sh
 
 ## 赞赏与交流
 
-如果 CreatorHub 对你有帮助，欢迎自愿赞赏，支持项目持续维护与改进。
+如果 蜂巢 对你有帮助，欢迎自愿赞赏，支持项目持续维护与改进。
 
-欢迎加入 **CreatorHub 交流群**，交流使用经验、问题反馈和功能建议。
+欢迎加入 **蜂巢 交流群**，交流使用经验、问题反馈和功能建议。
 
 <table>
   <tr>
