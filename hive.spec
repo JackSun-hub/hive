@@ -114,8 +114,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleName": "蜂巢",
         "CFBundleDisplayName": "蜂巢",
-        "CFBundleShortVersionString": "1.0.0",
-        "CFBundleVersion": "1.0.0",
+        "CFBundleShortVersionString": "1.0.4",
+        "CFBundleVersion": "1.0.4",
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",
         "NSHumanReadableCopyright": "蜂巢 · 多平台获客工作台",

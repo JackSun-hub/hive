@@ -1,0 +1,81 @@
+name: Build Windows (fast, no tests)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版本号，如 1.0.4
+        required: true
+        default: "1.0.4"
+
+concurrency:
+  group: windows-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          if ($v -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') { throw "版本号格式错误: $v" }
+          "value=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          echo "APP_VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r desktop/requirements-build.txt -c desktop/constraints-windows.txt
+
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build:ui
+
+      - name: Package application
+        run: python desktop/build_windows.py --version $env:APP_VERSION
+
+      - name: Download WebView2 bootstrapper
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/installer | Out-Null
+          $url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+          Invoke-WebRequest -Uri $url -OutFile dist/installer/MicrosoftEdgeWebview2Setup.exe
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $iss = "desktop/installer.iss"
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:APP_VERSION $iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup 编译失败" }
+          Get-ChildItem dist/installer | Format-Table Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hive-Windows-Fast
+          path: dist/installer/*.exe
+          retention-days: 7
