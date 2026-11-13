@@ -1,4 +1,17 @@
 
+
+// 小红书图片 CDN 的 URL 带签名时间戳，几个小时后就会 403。
+// 加载失败时把它换成占位块，别让控制台被满屏 403 刷屏。
+function coverFallback(img, { cls = "", icon = "i-image" } = {}) {
+  if (!img || img.dataset.fallback === "1") return;
+  img.dataset.fallback = "1";
+  const holder = document.createElement("span");
+  holder.className = (cls || "collection-cover-empty") + " cover-expired";
+  holder.title = "封面已过期（平台签名有时效）";
+  holder.innerHTML = (typeof ic === "function" ? ic(icon) : "");
+  img.replaceWith(holder);
+}
+
 // ── 孤儿遮罩清理 ──
 // workbench 的 Radix Sheet 偶尔会留下没有对应 .wb-sheet 的全屏遮罩
 // (data-state="open" 且 pointer-events:auto)，把整个页面点成死区。
@@ -3263,7 +3276,7 @@ function workCard(w) {
   const oc = `onclick="openWork(${jsArg(w.platform)},${jsArg(w.item_id)})"`;
   // 图裂时回退占位(onerror 换成灰底图标),避免绝对角标压到标题
   const cover = w.cover_url
-    ? `<img class="ncard-cover" src="${esc(safeMediaUrl(w.cover_url))}" referrerpolicy="no-referrer" loading="lazy" alt="" ${oc}
+    ? `<img class="ncard-cover" src="${esc(safeMediaUrl(w.cover_url))}" referrerpolicy="no-referrer" loading="lazy" alt="" onerror="coverFallback(this,{cls:'ncard-cover'})" ${oc}
          onerror="this.onerror=null;this.removeAttribute('src');this.style.visibility='hidden'">`
     : `<div class="ncard-cover ph" ${oc}>${ic("i-image")}</div>`;
   const title = esc(w.desc || "无描述");
@@ -5874,7 +5887,7 @@ function collectionResultCard(item) {
   const downloadLabel = fileExists ? "已下载" : item.download_status === "failed" ? "下载失败" : item.download_status === "done" ? "文件缺失" : "未下载";
   const byline = [item.author_name || "未知作者", item.ip_label ? `📍${item.ip_label}` : "", item.create_time ? fmtTime(item.create_time) : "", item.aweme_id || ""].filter(Boolean);
   const cover = item.cover_url
-    ? `<img src="${esc(item.cover_url)}" alt="${esc(title.slice(0, 60))}封面" loading="lazy" referrerpolicy="no-referrer">`
+    ? `<img src="${esc(item.cover_url)}" alt="${esc(title.slice(0, 60))}封面" loading="lazy" referrerpolicy="no-referrer" onerror="coverFallback(this,{cls:'collection-cover-empty',icon:'${isGallery ? "i-image" : "i-film"}'})">`
     : `<span class="collection-cover-empty">${ic(isGallery ? "i-image" : "i-film")}</span>`;
   const filePanel = fileExists ? `<div class="collection-file-panel" title="${esc(file.path)}">
     <div class="collection-file-main">${ic("i-folder")}<div class="collection-file-info">
@@ -6562,7 +6575,7 @@ function noteCard(r) {
   const typeIc = r.media_type === "images" ? "i-image" : "i-play";
   const typeLabel = r.media_type === "images" ? "图文" : "视频";
   const cover = r.cover_url
-    ? `<img class="ncard-cover" src="${esc(safeMediaUrl(r.cover_url))}" alt="${esc((r.desc || "笔记").slice(0, 20))}" referrerpolicy="no-referrer" loading="lazy" onclick="openPreview(${r.id})">`
+    ? `<img class="ncard-cover" src="${esc(safeMediaUrl(r.cover_url))}" alt="${esc((r.desc || "笔记").slice(0, 20))}" referrerpolicy="no-referrer" loading="lazy" onerror="coverFallback(this,{cls:'ncard-cover'})" onclick="openPreview(${r.id})">`
     : `<div class="ncard-cover ph" onclick="openPreview(${r.id})">${ic("i-image")}</div>`;
   return `<div class="ncard">
     ${cover}
@@ -6733,7 +6746,7 @@ async function refreshContents(resetPage = false) {
     const description = esc(r.desc || "（未填写作品文案）");
     return `<tr>
       <td class="content-check-cell"><label class="content-selection" title="选择这条作品"><input type="checkbox" data-id="${r.id}" aria-label="选择这条作品" onchange="contentToggleOne(${r.id}, this.checked)" ${selContent.has(r.id) ? "checked" : ""}></label></td>
-      <td class="content-cover-cell">${r.cover_url ? `<img class="thumb" src="${esc(safeMediaUrl(r.cover_url))}" alt="封面" referrerpolicy="no-referrer" onclick="openPreview(${r.id})">` : `<span class="content-cover-empty">${ic(r.media_type === "images" ? "i-image" : "i-film")}</span>`}</td>
+      <td class="content-cover-cell">${r.cover_url ? `<img class="thumb" src="${esc(safeMediaUrl(r.cover_url))}" alt="封面" referrerpolicy="no-referrer" onerror="coverFallback(this,{cls:'thumb'})" onclick="openPreview(${r.id})">` : `<span class="content-cover-empty">${ic(r.media_type === "images" ? "i-image" : "i-film")}</span>`}</td>
       <td class="content-desc-cell">
         <div class="content-desc-text" title="${description}">${description}</div>
         ${contentSourceMarkup(r)}
