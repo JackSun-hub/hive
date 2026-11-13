@@ -1,3 +1,28 @@
+
+// ── 孤儿遮罩清理 ──
+// workbench 的 Radix Sheet 偶尔会留下没有对应 .wb-sheet 的全屏遮罩
+// (data-state="open" 且 pointer-events:auto)，把整个页面点成死区。
+// 没有打开中的 sheet 就把它摘掉。
+(function orphanOverlayGuard() {
+  const clean = () => {
+    try {
+      if (document.querySelector('.wb-sheet[data-state="open"]')) return;
+      let removed = false;
+      document.querySelectorAll('.wb-sheet-overlay').forEach(el => {
+        if (el.getAttribute("data-state") === "open") { el.remove(); removed = true; }
+      });
+      if (removed) {
+        document.body.style.pointerEvents = "";
+        document.documentElement.removeAttribute("aria-hidden");
+        document.body.removeAttribute("aria-hidden");
+      }
+    } catch (e) {}
+  };
+  setInterval(clean, 1200);
+  document.addEventListener("DOMContentLoaded", clean);
+  window.addEventListener("load", () => setTimeout(clean, 300));
+})();
+
 const $ = (id) => document.getElementById(id);
 // 有用户发起的慢操作(开浏览器抓评论/发评论/解析链接等)在进行时,暂停 8 秒轮询刷新,
 // 否则定时重渲染会把按钮的「…中」加载态冲掉。
@@ -8966,18 +8991,20 @@ function ccBulkPickTemplate() {
   if (!id) return;
   const t = REPLY_TPLS.find(x => x.id === id);
   if (!t) return;
-  $("ccb-tpl").value = (t.templates || []).join("\n");
-  $("ccb-focus").value = t.ai_focus || "";
-  $("ccb-ai").checked = !!t.use_ai;
+  const tplEl = $("ccb-tpl"), focusEl = $("ccb-focus"), aiEl = $("ccb-ai");
+  if (tplEl) tplEl.value = (t.templates || []).join("\n");
+  if (focusEl) focusEl.value = t.ai_focus || "";
+  if (aiEl) aiEl.checked = !!t.use_ai;
   ccBulkHint(`已套用模板「${t.name}」`);
 }
 
 function ccBulkHint(t) { const el = $("ccb-hint"); if (el && t !== undefined) el.textContent = t || ""; }
 
 async function ccBulkSaveTemplate() {
-  const tpl = ($("ccb-tpl").value || "").split("\n").map(x => x.trim()).filter(Boolean);
-  const focus = ($("ccb-focus").value || "").trim();
-  const useAi = $("ccb-ai").checked;
+  if (!$("ccb-tpl")) { toast("面板已收起，无法保存模板", "err"); return; }
+  const tpl = ((($("ccb-tpl") || {}).value) || "").split("\n").map(x => x.trim()).filter(Boolean);
+  const focus = ((($("ccb-focus") || {}).value) || "").trim();
+  const useAi = !!(($("ccb-ai") || {}).checked);
   if (!tpl.length && !focus) {
     ccBulkHint("没有可保存的内容：至少写一条文案或填 AI 重点");
     return;
@@ -9012,11 +9039,20 @@ async function ccBulkSaveTemplate() {
 async function ccBulkSubmit(mode) {
   mode = mode || "run";
   const runNow = mode === "run";
-  const accId = +($("ccb-acc") && $("ccb-acc").value);
+  const panel = $("collection-bulk-panel");
+  if (!panel || !panel.querySelector("#ccb-acc")) {
+    // 面板被收起或重建过，DOM 已经不在了 —— 重新展开再让用户填一次，
+    // 而不是抛 TypeError 让控制台红一片。
+    toast("批量回复面板已收起，正在重新展开…", "info");
+    await ccBulkOpen();
+    return;
+  }
+  if (!COLLECTION_JOB_ID) { toast("请先进入某个采集任务详情", "err"); return; }
+  const accId = +((($("ccb-acc") || {}).value) || 0);
   if (!accId) { ccBulkHint("请先选择发送账号"); return; }
-  const tplId = +($("ccb-tpl-sel") && $("ccb-tpl-sel").value);
-  const tpl = ($("ccb-tpl").value || "").split("\n").map(s => s.trim()).filter(Boolean);
-  const useAi = $("ccb-ai").checked;
+  const tplId = +((($("ccb-tpl-sel") || {}).value) || 0);
+  const tpl = ((($("ccb-tpl") || {}).value) || "").split("\n").map(x => x.trim()).filter(Boolean);
+  const useAi = !!(($("ccb-ai") || {}).checked);
   if (!tplId && !useAi && !tpl.length) { ccBulkHint("关掉 AI 时至少要写一条文案"); return; }
   const action = ($("ccb-action") && $("ccb-action").value) || "comment";
   if (action === "dm" && !runNow) {
@@ -9028,16 +9064,21 @@ async function ccBulkSubmit(mode) {
     action: action,
     template_id: tplId || null,
     use_ai: useAi,
-    ai_focus: ($("ccb-focus").value || "").trim(),
+    ai_focus: ((($("ccb-focus") || {}).value) || "").trim(),
     templates: tpl,
-    min_gap_seconds: Math.max(1, +$("ccb-gap").value || 60),
-    jitter_seconds: Math.max(0, Math.min(3600, +$("ccb-jitter").value || 0)),
-    max_per_run: Math.max(1, +$("ccb-max").value || 10),
-    daily_cap: Math.max(1, +$("ccb-cap").value || 30),
+    min_gap_seconds: Math.max(1, +((($("ccb-gap") || {}).value) || 60)),
+    jitter_seconds: Math.max(0, Math.min(3600, +((($("ccb-jitter") || {}).value) || 0))),
+    max_per_run: Math.max(1, +((($("ccb-max") || {}).value) || 10)),
+    daily_cap: Math.max(1, +((($("ccb-cap") || {}).value) || 30)),
     require_review: false,
     enabled: runNow,
     run_now: runNow,
   };
+  // 防重复提交：连点会让同一批评论建出多条规则
+  if (panel.dataset.submitting === "1") return;
+  panel.dataset.submitting = "1";
+  const submitButtons = panel.querySelectorAll('button.btn-primary, button.ghost');
+  submitButtons.forEach(b => { b.disabled = true; });
   ccBulkHint(runNow ? "正在创建规则并铺排任务…" : "正在创建规则（不启动）…");
   try {
     const r = await api(`/api/collections/${COLLECTION_JOB_ID}/auto-reply`, {
@@ -9063,9 +9104,15 @@ async function ccBulkSubmit(mode) {
       toast(`已创建批量回复：规则 #${r.rule_id}，本轮 ${r.created} 条`, "ok", 8000);
     }
     if (typeof refreshCommentTasks === "function") refreshCommentTasks();
+    if (typeof refreshTaskQueue === "function") refreshTaskQueue();
+    // 规则建好后这个面板就没用了，收起让人看到下面的任务队列
+    setTimeout(() => { if (panel) panel.style.display = "none"; }, 1200);
   } catch (e) {
     ccBulkHint("创建失败：" + e.message);
     toast("创建失败：" + e.message, "err", 8000);
+  } finally {
+    panel.dataset.submitting = "";
+    submitButtons.forEach(b => { b.disabled = false; });
   }
 }
 
