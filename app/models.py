@@ -651,7 +651,8 @@ class CommentRule(SQLModel, table=True):
     jitter_seconds: int = 30             # 双向抖动(秒):间隔在 min_gap±本值 内随机,0=关闭双向抖动
     max_per_run: int = 5                 # 单轮最多生成多少条任务(避免一次铺太多)
     interval_seconds: int = 1800         # 规则多久跑一轮(发现+生成任务)
-    require_review: bool = False         # 草稿审核:生成的任务为 draft,人工通过后才发
+    require_review: bool = False
+    force_publish: bool = False         # true=即使平台默认要审核也直接发（批量回复时勾选）
     enabled: bool = False                # 默认关,确认无误再开
     last_run_at: Optional[datetime] = None
     last_error: str = ""

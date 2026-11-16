@@ -12017,6 +12017,7 @@ class CollectionAutoReplyIn(BaseModel):
     max_per_run: int = 10
     interval_seconds: int = 1800
     require_review: bool = False
+    skip_review: bool = False     # true=不等人工审核，直接发出（覆盖全局审核开关）
     enabled: bool = True
     run_now: bool = True          # 建好规则后立刻跑一轮，把任务铺进队列
 
@@ -12157,6 +12158,7 @@ async def create_collection_auto_reply(job_id: int, body: CollectionAutoReplyIn)
             templates=json.dumps(tps, ensure_ascii=False),
             use_ai=bool(use_ai), ai_focus=focus,
             require_review=bool(body.require_review),
+            force_publish=bool(body.skip_review),
             reply_filter="", skip_keywords="",
             daily_cap=max(0, body.daily_cap),
             min_gap_seconds=max(1, body.min_gap_seconds),

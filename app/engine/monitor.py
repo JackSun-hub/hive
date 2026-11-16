@@ -4090,7 +4090,8 @@ class MonitorEngine:
                        account_id=r.account_id, reply_filter=(r.reply_filter or "").strip(),
                        skip_keywords=r.skip_keywords or "",
                        require_review=bool(r.require_review),
-                      ai_focus=(r.ai_focus or "").strip())
+                      ai_focus=(r.ai_focus or "").strip(),
+                      force_publish=bool(getattr(r, "force_publish", False)))
             templates = compose.parse_templates(r.templates)
             use_ai = bool(r.use_ai)
             acc = s.get(DouyinAccount, r.account_id) if r.account_id else None
@@ -4126,7 +4127,11 @@ class MonitorEngine:
                                    self.cfg.engine,
                                    "xhs_comment_review_before_publish",
                                    True)))
-        review_required = rf["require_review"] or xhs_review_required
+        # force_publish 让用户在批量回复面板里显式选择「不等审核直接发」，
+        # 否则 xhs_comment_review_before_publish=true 时任务全停在草稿，
+        # 用户看到「创建成功」却一条都没发出去。
+        review_required = (rf["require_review"] or xhs_review_required) \
+            and not rf.get("force_publish")
 
         skip_words = [w.strip() for w in rf["skip_keywords"].split(",") if w.strip()]
         ai = self._ai_settings() if use_ai else None
@@ -4347,6 +4352,10 @@ class MonitorEngine:
             for c in comments:
                 ct = cmap.get(c.content_id)
                 out.append({
+                    # 下游全部按 target_comment_id 读取（建任务/去重/定位回复目标），
+                    # 这里只写 comment_id 会让批量回复建出一条条"没有目标"的任务，
+                    # 执行时定位不到评论，用户看到的就是"点了没反应"。
+                    "target_comment_id": c.comment_id,
                     "comment_id": c.comment_id,
                     "text": c.text or "",
                     "user_nickname": c.user_nickname or "",

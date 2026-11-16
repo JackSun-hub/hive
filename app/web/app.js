@@ -1907,7 +1907,7 @@ let ACCOUNTS = [];
 let BROWSER_RUNTIMES = [];
 let BROWSER_RUNTIME_ROOT = "";
 let MONITORS = [], WATCHES = [], CONTENTS = [];
-let COLLECTION_JOBS = [], COLLECTION_JOB_ID = 0, COLLECTION_PAGE = 1;
+let COLLECTION_JOBS = [], COLLECTION_JOB_ID = 0, COLLECTION_PAGE = 1, COLLECTION_JOB_PLATFORM = "";
 let COLLECTION_COMMENT_CONTENT_ID = 0, COLLECTION_COMMENT_PAGE = 1;
 let COLLECTION_COMMENT_TIMER = null, COLLECTION_COMMENT_REQUEST = 0;
 let COLLECTION_FAVORITE_BOARDS = [];
@@ -5715,6 +5715,7 @@ async function refreshCollections() {
     renderCollectionJobs();
     if (COLLECTION_JOB_ID) {
       const job = COLLECTION_JOBS.find(j => j.id === COLLECTION_JOB_ID);
+  COLLECTION_JOB_PLATFORM = (job && job.platform) || COLLECTION_JOB_PLATFORM || "";
       if (job) {
         updateCollectionResultStats(job);
         if (CURRENT_TAB === "collections") await loadCollectionContents(COLLECTION_PAGE, true);
@@ -8781,12 +8782,17 @@ async function ccReplyToggle(cid) {
   const sel = $("cc-acc-" + cid);
   if (sel && !sel.options.length) {
     try {
-      const accs = await api(`/api/accounts?platform=${encodeURIComponent(PLATFORM)}`);
+      // 必须用采集任务自己的平台，不能用全局 PLATFORM：
+      // 在小红书任务里回复时，全局平台可能是抖音，会拉到空账号列表。
+      const wantPlatform = COLLECTION_JOB_PLATFORM || PLATFORM;
+      const accs = await api(`/api/accounts?platform=${encodeURIComponent(wantPlatform)}`);
       const usable = (accs || []).filter(a => a.status === "active");
       sel.innerHTML = usable.length
         ? usable.map(a => `<option value="${a.id}">${esc(a.nickname || ("账号 " + a.id))}</option>`).join("")
         : `<option value="">无可用账号</option>`;
-      if (!usable.length) ccHint(cid, "该平台没有已登录账号，先到「账号」页扫码登录");
+      if (!usable.length) {
+        ccHint(cid, `「${wantPlatform}」下没有状态正常的账号，请到「账号」页扫码登录或检查登录态是否失效`);
+      }
     } catch (e) {
       ccHint(cid, "账号加载失败：" + e.message);
     }
@@ -8947,6 +8953,7 @@ async function ccBulkOpen() {
       <div><label class="field" for="ccb-cap">每日上限（条）</label><input type="number" id="ccb-cap" value="30" min="1" inputmode="numeric"></div>
     </div>
     <label class="ui-toggle"><span><b>用 AI 写回复</b><small>失败自动回退下面的文案</small></span><input type="checkbox" id="ccb-ai" checked></label>
+    <label class="ui-toggle"><span><b>跳过人工审核，直接发布</b><small>关闭时任务会存为草稿，需在「自动评论」页审核通过后才发出</small></span><input type="checkbox" id="ccb-skipreview"></label>
     <div><label class="field" for="ccb-focus">AI 回复重点</label><input id="ccb-focus" maxlength="300" placeholder="如：引导对方私信咨询，不要直接报价"></div>
     <div><label class="field" for="ccb-tpl">兜底文案（每行一条）</label><textarea id="ccb-tpl" rows="3" placeholder="谢谢支持～"></textarea></div>
     <div class="cc-hint" id="ccb-hint"></div>
@@ -8963,11 +8970,21 @@ async function ccBulkOpen() {
   try {
     const job = await api(`/api/collections/${COLLECTION_JOB_ID}`);
     const accs = await api("/api/accounts");
-    const usable = (accs || []).filter(a => a.platform === job.platform && a.status === "active");
+    const samePlatform = (accs || []).filter(a => a.platform === job.platform);
+    const usable = samePlatform.filter(a => a.status === "active");
     accSel.innerHTML = usable.length
       ? usable.map(a => `<option value="${a.id}">${esc(a.nickname || ("账号 " + a.id))}</option>`).join("")
       : `<option value="">无可用账号</option>`;
-    if (!usable.length) ccBulkHint("该平台没有已登录账号，先到「账号」页扫码登录");
+    if (!usable.length) {
+      // 说清楚是「一个都没有」还是「有但登录态失效」，否则用户只会看到提交失败
+      if (!samePlatform.length) {
+        ccBulkHint(`「${job.platform}」下还没有绑定账号。先到左侧「平台账号」扫码登录，再回来批量回复。`);
+      } else {
+        const bad = samePlatform.map(a =>
+          `${a.nickname || ("账号" + a.id)}（${a.status === "invalid" ? "登录态已失效" : a.status}）`).join("、");
+        ccBulkHint(`有 ${samePlatform.length} 个账号但都不可用：${bad}。请到「平台账号」重新扫码登录。`);
+      }
+    }
 
     const all = await api(`/api/reply-templates?platform=${encodeURIComponent(job.platform)}`);
     REPLY_TPLS = all || [];
@@ -9084,6 +9101,7 @@ async function ccBulkSubmit(mode) {
     max_per_run: Math.max(1, +((($("ccb-max") || {}).value) || 10)),
     daily_cap: Math.max(1, +((($("ccb-cap") || {}).value) || 30)),
     require_review: false,
+    skip_review: !!(($("ccb-skipreview") || {}).checked),
     enabled: runNow,
     run_now: runNow,
   };
