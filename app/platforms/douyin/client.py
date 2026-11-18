@@ -576,8 +576,10 @@ class DouyinClient:
                 else:
                     self.last_error = (f"http_{response.status_code}"
                                        if response.status_code != 200 else "empty_body")
-                self.last_write_uncertain = (
-                    response.status_code >= 500 or response.status_code == 200)
+                # 只有 5xx / 连接中断才算"不确定"（请求可能已生效，重发会重复）。
+                # 200 + 空 body 是抖音风控的静默拒绝：请求完整到达、平台没建任何东西，
+                # 属于"明确失败"，可以安全回退到页面重试。
+                self.last_write_uncertain = response.status_code >= 500
                 return None
             try:
                 payload = response.json()
@@ -730,8 +732,10 @@ class DouyinClient:
             if response.status_code != 200 or not raw:
                 self.last_error = (f"http_{response.status_code}"
                                    if response.status_code != 200 else "empty_body")
-                self.last_write_uncertain = (
-                    response.status_code >= 500 or response.status_code == 200)
+                # 只有 5xx / 连接中断才算"不确定"（请求可能已生效，重发会重复）。
+                # 200 + 空 body 是抖音风控的静默拒绝：请求完整到达、平台没建任何东西，
+                # 属于"明确失败"，可以安全回退到页面重试。
+                self.last_write_uncertain = response.status_code >= 500
                 return None, self._write_error("imapi_create_no_response")
             parsed = parse_create_conversation_response(raw)
             if parsed.get("ok"):
@@ -783,8 +787,10 @@ class DouyinClient:
             if response.status_code != 200 or not raw:
                 self.last_error = (f"http_{response.status_code}"
                                    if response.status_code != 200 else "empty_body")
-                self.last_write_uncertain = (
-                    response.status_code >= 500 or response.status_code == 200)
+                # 只有 5xx / 连接中断才算"不确定"（请求可能已生效，重发会重复）。
+                # 200 + 空 body 是抖音风控的静默拒绝：请求完整到达、平台没建任何东西，
+                # 属于"明确失败"，可以安全回退到页面重试。
+                self.last_write_uncertain = response.status_code >= 500
                 return False, self._write_error("imapi_no_response")
             parsed = parse_send_response(raw)
             if parsed.get("ok") and parsed.get("cmd") == 100:

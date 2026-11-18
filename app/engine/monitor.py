@@ -643,6 +643,24 @@ class MonitorEngine:
             acc, headed=headed, browser_mode=browser_mode) or "")
 
     @staticmethod
+    def _explain_comment_error(err: str) -> str:
+        """把底层错误码翻成用户能看懂的话，原始码保留便于排查。"""
+        text = str(err or "")
+        mapping = (
+            ("empty_body",
+             "抖音返回空响应（多半是风控静默拒绝，请求未生效），已自动改用页面模式重试"),
+            ("api_requires_browser_security",
+             "接口要求浏览器安全上下文，已自动改用页面模式重试"),
+            ("network:", "网络中断，任务保留等待重试"),
+            ("logged_out", "账号登录态已失效，请重新扫码登录"),
+            ("target_resolution_failed", "定位不到目标用户或评论，可能已删除"),
+        )
+        for key, human in mapping:
+            if key in text:
+                return f"{human}（原始：{text[:80]}）"
+        return text
+
+    @staticmethod
     def _blocked_signal(reason: str) -> str:
         text = str(reason or "")
         if "登录态" in text or "重新登录" in text:
@@ -5339,7 +5357,7 @@ class MonitorEngine:
                 else:
                     t.status = "failed"
                 t.result = result
-                t.error = "" if ok else err
+                t.error = "" if ok else _explain_comment_error(err)
                 t.method = method
                 t.done_at = datetime.utcnow() if ok else t.done_at
                 s.add(t); s.commit()
